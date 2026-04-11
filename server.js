@@ -317,7 +317,10 @@ wss.on('connection', (ws, req) => {
         const roomCount = (wsRoomCount.get(normIp) ?? 0) + 1
         if (roomCount > WS_ROOM_LIMIT) {
           console.log(`[ROOM] RATE LIMIT  create  from=${normIp}`)
-          send(ws, { type: 'error', message: 'Demasiadas salas creadas. Intenta de nuevo en unos minutos.' })
+          send(ws, {
+            type: 'error',
+            message: 'Demasiadas salas creadas. Intenta de nuevo en unos minutos.'
+          })
           break
         }
         wsRoomCount.set(normIp, roomCount)
@@ -368,7 +371,9 @@ wss.on('connection', (ws, req) => {
 
       case 'relay-meta': {
         const info = getPeer(ws)
-        console.log(`[RELAY] meta  ${info?.code ?? '?'}  type=${msg.payload?.type ?? '?'}  from=${normIp}`)
+        console.log(
+          `[RELAY] meta  ${info?.code ?? '?'}  type=${msg.payload?.type ?? '?'}  from=${normIp}`
+        )
         if (info?.peer) send(info.peer, msg)
         break
       }
@@ -425,7 +430,9 @@ wss.on('connection', (ws, req) => {
   ws.on('close', (code, reason) => {
     const info = getPeer(ws)
     clients.delete(ws)
-    console.log(`[WS] DISCONNECT  ${normIp}  code=${code}  room=${info?.code ?? '-'}  role=${info?.role ?? '-'}`)
+    console.log(
+      `[WS] DISCONNECT  ${normIp}  code=${code}  room=${info?.code ?? '-'}  role=${info?.role ?? '-'}`
+    )
     if (!info) return
     const { code: roomCode, room, role, peer } = info
     if (peer) send(peer, { type: 'peer-disconnected' })
@@ -438,7 +445,7 @@ wss.on('connection', (ws, req) => {
   })
 })
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3002
 server.listen(PORT, () => {
   console.log(`fAir Drop corriendo en http://localhost:${PORT}`)
   console.log(`Status en         http://localhost:${PORT}/status`)
