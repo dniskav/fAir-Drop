@@ -11,7 +11,12 @@
 
 import { createAppState } from '../client/app/state.js'
 import type { AppState } from '../client/app/state.js'
-import type { ConnectionStatus, ExpiryConfig, SignalMessage, TransferMessage } from '../client/shared/domain/types.js'
+import type {
+  ConnectionStatus,
+  ExpiryConfig,
+  SignalMessage,
+  TransferMessage
+} from '../client/shared/domain/types.js'
 import { connectWs, wsSend } from '../client/features/connection/application/signaling.js'
 import {
   acceptOffer,
@@ -20,7 +25,7 @@ import {
   sendMeta,
   startPeerConnection,
   switchToRelay,
-  type WebRtcPorts,
+  type WebRtcPorts
 } from '../client/features/connection/application/webrtc.js'
 import {
   cleanupFiles,
@@ -28,7 +33,7 @@ import {
   handleChunk,
   handleMetaMessage,
   recordDownload,
-  sendFiles,
+  sendFiles
 } from '../client/features/transfer/application/transfer.js'
 import { showRoom, resetToHome } from '../client/features/rooms/application/rooms.js'
 
@@ -36,23 +41,24 @@ export type { AppState }
 export type { ExpiryConfig }
 
 export class FairDropStore {
+  // _state es SIEMPRE la misma referencia. Los callbacks WebRTC asíncronos
+  // (ondatachannel, onopen…) capturan esta referencia y pueden mutarla
+  // en cualquier momento sin perder sincronía.
   private _state: AppState = createAppState()
+
+  // _snap es el snapshot que React lee. Se reemplaza en cada notify() para
+  // que useSyncExternalStore detecte el cambio por igualdad de referencia.
+  // Así _state nunca se reemplaza y los closures siempre apuntan al objeto correcto.
+  private _snap: Readonly<AppState> = this._state
+
   private _listeners = new Set<() => void>()
 
   // ── Lectura de estado ───────────────────────────────────────────────────────
 
-  /** Devuelve un snapshot inmutable del estado actual. */
-  getState(): Readonly<AppState> {
-    return this._state
+  getState = (): Readonly<AppState> => {
+    return this._snap
   }
 
-  /**
-   * Suscribe un listener que se llama cada vez que el estado cambia.
-   * Devuelve la función de desuscripción.
-   *
-   * Compatible con React useSyncExternalStore:
-   *   useSyncExternalStore(store.subscribe, store.getState)
-   */
   subscribe = (listener: () => void): (() => void) => {
     this._listeners.add(listener)
     return () => this._listeners.delete(listener)
@@ -60,13 +66,18 @@ export class FairDropStore {
 
   // ── Mutación interna ────────────────────────────────────────────────────────
 
-  /**
-   * Crea un nuevo objeto de estado superficial para que React detecte el cambio.
-   * Los Maps se mutan in-place; el spread del nivel superior es suficiente.
-   */
+  // Crea un nuevo snapshot (nueva referencia para React) sin tocar _state.
+  // Esto preserva las referencias capturadas por los callbacks WebRTC.
   private notify = (): void => {
-    this._state = { ...this._state }
+    this._snap = { ...this._state }
     this._listeners.forEach((fn) => fn())
+  }
+
+  // Cierra el WebSocket limpiamente. Llamar en beforeunload para que el
+  // servidor elimine la sala antes de que iOS/Android mantengan el socket vivo.
+  disconnect(): void {
+    this._state.ws?.close()
+    this._state.ws = null
   }
 
   private setStatus(status: ConnectionStatus): void {
@@ -100,7 +111,7 @@ export class FairDropStore {
       onSignal: (msg) => this.handleSignal(msg),
       onRelayMeta: (msg) => handleMetaMessage(this._state, msg, this.notify),
       onBinaryChunk: (buf) => handleChunk(this._state, buf, this.notify),
-      showHomeError: (msg) => this.showHomeError(msg),
+      showHomeError: (msg) => this.showHomeError(msg)
     })
     ws.onopen = () => wsSend(this._state, { type: 'create-room' })
   }
@@ -115,12 +126,15 @@ export class FairDropStore {
       onSignal: (msg) => this.handleSignal(msg),
       onRelayMeta: (msg) => handleMetaMessage(this._state, msg, this.notify),
       onBinaryChunk: (buf) => handleChunk(this._state, buf, this.notify),
-      showHomeError: (msg) => this.showHomeError(msg),
+      showHomeError: (msg) => this.showHomeError(msg)
     })
     ws.onopen = () => wsSend(this._state, { type: 'join-room', code })
   }
 
   leaveRoom(reason?: string): void {
+    // Close the WebSocket to notify the server and ensure the room is
+    // removed immediately (avoids zombie rooms on mobile reloads).
+    this.disconnect()
     cleanupFiles(this._state, this.notify)
     resetToHome(this._state, reason, this.notify)
   }
@@ -144,13 +158,7 @@ export class FairDropStore {
   // ── Transferencia ───────────────────────────────────────────────────────────
 
   sendFiles(files: File[], expiry: ExpiryConfig | null = null): Promise<void> {
-    return sendFiles(
-      this._state,
-      files,
-      expiry,
-      this.notify,
-      (msg) => this.showRoomError(msg)
-    )
+    return sendFiles(this._state, files, expiry, this.notify, (msg) => this.showRoomError(msg))
   }
 
   deleteFile(fileId: string): void {
@@ -167,7 +175,7 @@ export class FairDropStore {
     return {
       setStatus: (s) => this.setStatus(s),
       handleMetaMessage: (msg) => handleMetaMessage(this._state, msg, this.notify),
-      handleChunk: (buf) => handleChunk(this._state, buf, this.notify),
+      handleChunk: (buf) => handleChunk(this._state, buf, this.notify)
     }
   }
 

@@ -1,5 +1,9 @@
 import type { AppState, ExpiryRuntime } from '../../../app/state.js'
-import type { ExpiryConfig, FileStartMessage, TransferMessage } from '../../../shared/domain/types.js'
+import type {
+  ExpiryConfig,
+  FileStartMessage,
+  TransferMessage
+} from '../../../shared/domain/types.js'
 import { relaySend, sendMeta } from '../../connection/application/webrtc.js'
 
 const CHUNK_SIZE = 16 * 1024
@@ -53,7 +57,7 @@ async function sendFile(
     size: file.size,
     mimeType: file.type || 'application/octet-stream',
     totalChunks,
-    ...(expiry ? { expiry } : {}),
+    ...(expiry ? { expiry } : {})
   }
 
   state.incoming.set(fileId, { meta, chunks: [], received: 0, direction: 'sending' })
@@ -85,6 +89,23 @@ async function sendFile(
       if (state.dc.bufferedAmount > 1024 * 1024) await waitForBuffer(state)
     }
     state.dc.send(JSON.stringify({ type: 'file-end', fileId }))
+  } else if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    // Fallback automático a relay si la DataChannel no está disponible pero
+    // la conexión WebSocket al servidor está abierta. Esto evita fallos
+    // de envío en entornos NAT restrictivos sin necesidad de TURN.
+    state.useRelay = true
+    relaySend(state, meta)
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE
+      relaySend(state, buffer.slice(start, start + CHUNK_SIZE))
+      const entry = state.incoming.get(fileId)
+      if (entry) entry.received = i + 1
+      if (i % 20 === 19) {
+        notify()
+        await new Promise(requestAnimationFrame)
+      }
+    }
+    relaySend(state, { type: 'file-end', fileId })
   } else {
     state.incoming.delete(fileId)
     state.fileMeta.delete(fileId)
@@ -104,11 +125,7 @@ async function sendFile(
 
 // ── Recepción ────────────────────────────────────────────────────────────────
 
-export function handleMetaMessage(
-  state: AppState,
-  msg: TransferMessage,
-  notify: () => void
-): void {
+export function handleMetaMessage(state: AppState, msg: TransferMessage, notify: () => void): void {
   if (msg.type === 'file-start') {
     state.incoming.set(msg.fileId, { meta: msg, chunks: [], received: 0, direction: 'receiving' })
     notify()
@@ -194,12 +211,33 @@ export function recordDownload(state: AppState, fileId: string, notify: () => vo
 export function fileIconType(name: string): string {
   const ext = name.split('.').pop()?.toLowerCase()
   const icons: Record<string, string> = {
-    pdf: 'doc', zip: 'zip', tar: 'zip', gz: 'zip', rar: 'zip',
-    jpg: 'img', jpeg: 'img', png: 'img', gif: 'img', webp: 'img', svg: 'img',
-    mp4: 'mov', mkv: 'mov', mov: 'mov', avi: 'mov',
-    mp3: 'aud', wav: 'aud', flac: 'aud',
-    js: 'code', ts: 'code', json: 'code', html: 'code', css: 'code',
-    txt: 'txt', md: 'md', dmg: 'app', exe: 'app',
+    pdf: 'doc',
+    zip: 'zip',
+    tar: 'zip',
+    gz: 'zip',
+    rar: 'zip',
+    jpg: 'img',
+    jpeg: 'img',
+    png: 'img',
+    gif: 'img',
+    webp: 'img',
+    svg: 'img',
+    mp4: 'mov',
+    mkv: 'mov',
+    mov: 'mov',
+    avi: 'mov',
+    mp3: 'aud',
+    wav: 'aud',
+    flac: 'aud',
+    js: 'code',
+    ts: 'code',
+    json: 'code',
+    html: 'code',
+    css: 'code',
+    txt: 'txt',
+    md: 'md',
+    dmg: 'app',
+    exe: 'app'
   }
   return ext ? (icons[ext] ?? 'file') : 'file'
 }
@@ -244,6 +282,6 @@ function startExpiryTimer(
 function startDownloadLimit(state: AppState, fileId: string, maxDownloads: number): void {
   state.fileExpiry.set(fileId, {
     ...state.fileExpiry.get(fileId),
-    downloadsLeft: maxDownloads,
+    downloadsLeft: maxDownloads
   })
 }

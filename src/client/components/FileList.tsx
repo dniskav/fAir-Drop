@@ -108,11 +108,9 @@ export default function FileList({
             {c.url ? (
               <a
                 className="btn-download"
-                onClick={(e) => {
-                  e.preventDefault()
-                  actions.downloadFile(c.id)
-                }}
-                href={c.url}>
+                onClick={() => actions.downloadFile(c.id)}
+                href={c.url}
+                download={c.name}>
                 Descargar
               </a>
             ) : (

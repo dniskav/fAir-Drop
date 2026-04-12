@@ -108,6 +108,11 @@ El CSS usa patrones modernos compatibles con navegadores actuales: `@layer`, `:w
 
 La paleta visual se inspira en los colores de sistema actuales de Apple: `systemBlue` (`#007AFF`), `systemGreen` (`#34C759`), `systemRed` (`#FF3B30`), `systemOrange` (`#FF9500`), labels de iOS (`#1C1C1E`, `#3A3A3C`, `#8E8E93`) y fondos agrupados claros (`#F2F2F7`).
 
+UI tweaks:
+
+- Botones: se normalizó la altura y el padding de los botones de la UI para que encajen visualmente con los badges de estado (p. ej. "Esperando..."). Esto mejora la coherencia en la cabecera y en las acciones de la sala.
+- Acciones destructivas: se añadió `.btn-destructive` para acciones como "Salir" — estilo con fondo blanco, texto y borde rojos, sin sombra, para seguir el patrón del badge y minimizar ruido visual.
+
 ## Limitaciones
 
 - El relay pasa los chunks por el servidor, asi que para archivos grandes consume ancho de banda del host.

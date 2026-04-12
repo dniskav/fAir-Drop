@@ -13,7 +13,6 @@ declare global {
 }
 
 export interface QrDom {
-  inputCode: HTMLInputElement;
   qrScanner: HTMLDialogElement;
   qrVideo: HTMLVideoElement;
   scannerStatus: HTMLElement;
@@ -25,7 +24,7 @@ let scannerFrame: number | null = null;
 export async function startQrScanner(
   dom: QrDom,
   showHomeError: (message: string) => void,
-  joinRoom: () => void,
+  onDetected: (code: string) => void,
 ): Promise<void> {
   if (!window.isSecureContext) {
     showHomeError('La camara requiere HTTPS o localhost. Tambien puedes abrir el QR con la app Camara del movil.');
@@ -57,9 +56,8 @@ export async function startQrScanner(
         const codes = await detector.detect(dom.qrVideo);
         const room = extractRoomCode(codes[0]?.rawValue);
         if (room) {
-          dom.inputCode.value = room;
           stopQrScanner(dom);
-          joinRoom();
+          onDetected(room);
           return;
         }
         if (codes[0]?.rawValue) dom.scannerStatus.textContent = 'QR detectado, pero no parece una sala de fAir Drop.';

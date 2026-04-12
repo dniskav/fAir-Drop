@@ -6,14 +6,15 @@ fAir Drop es una app local-first para compartir archivos entre dos dispositivos 
 
 ## Como trabajar en este repo
 
-- Mantener la app simple: Node.js, Express, `ws`, TypeScript de navegador, HTML/CSS vanilla.
-- La migración a React está en progreso; los componentes viven en `src/client/components/` pero la UI activa sigue siendo la vanilla de `main.ts`.
-- El entry point HTML es `index.html` en la raiz del proyecto (no en `public/`). Preservar todos sus IDs; `src/client/main.ts` y sus slices dependen de ellos via `getDomRefs()` — si falta un ID la app no arranca. Ver lista completa en la seccion de Arquitectura.
+- Mantener la app simple: Node.js, Express, `ws`, TypeScript de navegador, React sin SSR.
+- **La migración a React está activa y es la UI en producción.** El entry point es `src/client/main.ts` que monta `App.tsx` sobre `<div id="root">`. La version vanilla (`main.ts` original) ya no se usa como UI activa.
+- El entry point HTML es `index.html` en la raiz del proyecto (no en `public/`). Solo necesita `<div id="root">` — los IDs del HTML vanilla ya no son necesarios en la UI React.
 - La fuente del cliente vive en `src/client`. No editar `dist/` ni `public/app/` a mano; son salida de build.
 - `public/` es el `publicDir` de Vite: solo contiene `style.css`. No poner ahi archivos compilados.
 - Mantener `fairdrop` como identificador tecnico interno cuando aplique, aunque la marca visible sea `fAir Drop`.
 - Evitar persistencia innecesaria: salas, clientes y bans estan en memoria por diseno.
 - Vite maneja cache busting automaticamente en build (hashes en nombres de assets).
+- El store reactivo vive en `src/core/store.ts` (no en `src/client/core/`). `App.tsx` importa de `'../core/store'`.
 
 ## Comandos
 
@@ -32,27 +33,30 @@ node --check server.js
 
 `index.html` (raiz del proyecto) es el entry point de Vite. El script apunta a `/src/client/main.ts` en desarrollo; Vite lo reemplaza por el bundle hasheado en `dist/` al compilar.
 
-`src/client/main.ts` compone la experiencia del navegador: creacion/union a sala, handshake WebRTC, DataChannel, fallback relay, drag and drop, progreso de archivos, expiraciones, eliminacion remota y controles del peer.
+`src/client/main.ts` monta `App.tsx` sobre `#root`. Toda la logica de UI vive en los componentes React.
 
-**IDs criticos del HTML** (todos deben existir o la app lanza error al arrancar):
-`brand-mark`, `btn-join`, `input-code`, `home-error`, `room-error`, `room-code-display`, `btn-copy-code`, `connection-status`, `status-text`, `drop-zone`, `drop-waiting`, `drop-ready`, `file-input`, `file-list-section`, `file-list`, `share-banner`, `share-url`, `btn-copy-link`, `btn-native-share`, `btn-scan-qr`, `qr-scanner`, `btn-close-scanner`, `qr-video`, `scanner-status`, `room-qr`, `room-qr-card`, `clients-list`, `exp-time-on`, `exp-time-val`, `exp-dl-on`, `exp-dl-val`, `screen-home`, `screen-room`.
+**El unico ID requerido en el HTML es `root`** (el `<div>` donde React monta). Los IDs del HTML vanilla ya no aplican.
 
-**NO existe** `btn-create` — crear sala lo hace `brand-mark` (el radar). No añadirlo.
+**NO existe** `btn-create` — crear sala lo hace el componente `BrandMark` (el radar) a traves de `actions.createRoom()`.
 
 La estructura TypeScript sigue una version ligera de arquitectura hexagonal con vertical slicing:
 
 ```text
-src/client/app                         estado y composicion
-src/client/shared/domain               tipos del dominio del cliente
-src/client/shared/adapters             adaptadores DOM
-src/client/shared/application          utilidades sin DOM
-src/client/features/connection         WebSocket, signaling, WebRTC y relay
-src/client/features/rooms              crear/unirse/resetear sala
-src/client/features/transfer           archivos, chunks, expiraciones
-src/client/features/dropzone           UI del dropzone
-src/client/features/peers              panel de conexiones
-src/client/features/qr                 escaner QR
+src/core/store.ts                      FairDropStore — estado global reactivo (unica instancia en App.tsx)
+src/client/main.ts                     entry point: monta App.tsx sobre #root
+src/client/App.tsx                     componente raiz, enruta entre Home y Room
+src/client/adapters/react/             useFairDrop hook (useSyncExternalStore)
+src/client/components/                 Home, Room, FileList, PeersPanel, BrandMark, RoomCodeInput
+src/client/app/                        AppState, createAppState, AppPorts
+src/client/shared/domain/             tipos del dominio (SignalMessage, ExpiryConfig…)
+src/client/shared/application/        utilidades sin DOM (format, etc.)
+src/client/features/connection/       WebSocket signaling + WebRTC + relay
+src/client/features/rooms/            showRoom, resetToHome
+src/client/features/transfer/         sendFiles, handleChunk, deleteFile, expiraciones
+src/client/features/qr/               qr-scanner (BarcodeDetector)
 ```
+
+**Separacion importante:** las features son funciones puras que reciben `(state: AppState, ...args, notify: () => void)`. No tocan el DOM ni React directamente. El store las orquesta.
 
 `public/style.css` contiene el sistema visual. Esta organizado con `@layer` y usa CSS moderno con fallbacks progresivos.
 
@@ -80,13 +84,22 @@ src/client/features/qr                 escaner QR
 
 ## Cuidado con
 
+- **`notify()` en `FairDropStore` NO reemplaza `_state`**. Crea un `_snap` nuevo para React pero `_state` es siempre la misma referencia. Esto es intencional: los callbacks WebRTC asincronos (`ondatachannel`, `onopen`) capturan `state` por referencia al inicio y deben seguir apuntando al objeto correcto aunque React haya renderizado. Si se cambia `notify()` para reemplazar `_state` se rompe el DataChannel del guest (invitado). Ver bug arreglado abajo.
 - El orden de chunks en relay asume una transferencia activa por flujo de recepcion; probar bien si se agregan envios paralelos reales.
 - `URL.createObjectURL` debe revocarse al borrar archivos para evitar leaks.
 - Las expiraciones deben avisar al peer con `file-deleted` para mantener ambas listas sincronizadas.
 - La pagina `/status` esta embebida en `server.js`; si se rediseña, mantenerla ligera.
 - El cliente agrega clases `is-mobile` / `is-desktop` al documento usando pointer coarse y user agent.
+
+## Ajustes recientes de UI
+
+- Los botones en la cabecera y acciones se han reducido para empatar visualmente con el badge de estado (`Esperando...`). Ahora los controles usan una altura fija pequeña y padding reducido para mantener una línea visual compacta.
+- Se introdujo la clase `.btn-destructive` para acciones peligrosas como "Salir": fondo blanco/panel, texto en `--red` y borde rojo (sin sombra) siguiendo el patrón de los badges.
+- `btn-icon` y botones secundarios fueron ajustados para compartir la misma altura y alineación vertical con los badges.
+
 - El servidor conserva la sala cuando se desconecta el invitado; solo borra la sala cuando se va el creador.
-- El bundle `public/app/main.js` ronda 1MB por las dependencias de React incluidas en el tree (aunque React no se monta en la UI actual). Si se decide descartar React definitivamente, eliminar las dependencias reduce el bundle.
+- En modo relay, `sendFile` activa `state.useRelay = true` automaticamente si `dc` no esta abierto pero `ws` si. Esto permite al host enviar sin P2P cuando hay NAT restrictivo.
+- Cuando la app usa relay en vez de P2P directo, se muestra un banner naranja en `Room.tsx` (clase `.relay-warning`).
 
 ## Estilo visual
 
@@ -98,13 +111,35 @@ No convertir la pantalla inicial en una landing de marketing; la primera pantall
 
 ## Estado actual
 
-La app funciona en modo vanilla (HTML/CSS/TypeScript sin frameworks en runtime). Los archivos React (`src/client/App.tsx`, `src/client/components/`) existen en el repo como trabajo en progreso de una migracion pendiente, pero no se montan en la UI actual.
+La app funciona con React. `App.tsx` monta `Home` o `Room` segun `state.screen`. El store (`src/core/store.ts`) es la unica fuente de verdad; React lee via `useSyncExternalStore`.
+
+### Bugs arreglados (historico para no repetir)
+
+**DataChannel null en el guest (invitado no podia enviar archivos)**
+
+- Causa: `notify()` hacia `this._state = { ...this._state }`. Los callbacks WebRTC asincronos (`ondatachannel`, `onopen`) capturaban la referencia vieja. `state.dc = channel` se escribia en el objeto abandonado; `_state.dc` quedaba null. El creator no tenia el problema porque `dc` se asigna sincronamente.
+- Fix: `_state` es ahora inmutable como referencia (nunca se reemplaza). `notify()` solo reemplaza `_snap`, que es lo que React lee. Las features leen y mutan siempre `_state` directamente.
+
+**Sala zombie al recargar pagina (especialmente en iOS/Android)**
+
+- Causa: iOS/Android puede mantener el WebSocket vivo varios segundos tras recargar. El servidor recibia `peer-joined` y lo reenviaba al creator original que ya no procesaba mensajes, dejando el handshake WebRTC colgado.
+- Fix: `beforeunload` llama a `store.disconnect()` que cierra el WebSocket limpiamente. El servidor recibe el evento `close` y elimina la sala de inmediato.
+
+**`getState` perdia `this` en `useSyncExternalStore`**
+
+- Causa: `getState()` era un metodo normal. `useSyncExternalStore` lo llama sin receptor en strict mode → `this` undefined.
+- Fix: convertido a arrow function class field.
+
+**Host no podia enviar cuando P2P falla por NAT**
+
+- Causa: `sendFile` lanzaba `no-transport` si `dc` no estaba abierto, incluso si el WebSocket al servidor estaba disponible.
+- Fix: fallback automatico a relay si `ws.readyState === OPEN`. Se activa `state.useRelay = true` y se envia por WebSocket. Se muestra banner de aviso en Room.
 
 ## Proximos pasos sugeridos
 
-- Decidir si la migracion a React continua o se descarta. Si se descarta, eliminar `App.tsx`, `components/` y las dependencias `react`/`react-dom` para reducir el bundle.
-- Anadir TURN server para casos de WebRTC fuera de red local simple.
-- Evaluar servir la app con HTTPS en desarrollo local (mkcert) para tener paridad de entorno con produccion.
+- Anadir TURN server para mejorar tasa de exito P2P fuera de LAN (Metered.ca tiene tier gratuito). Ver seccion TURN en este archivo.
+- Evaluar servir la app con HTTPS en desarrollo local (mkcert) para paridad con produccion.
+- Eliminar `src/client/core/store.ts` (duplicado incompleto); el store activo es `src/core/store.ts`.
 
 ---
 
@@ -132,14 +167,16 @@ Crear `ecosystem.config.js` en la raiz del proyecto:
 
 ```js
 module.exports = {
-  apps: [{
-    name: 'fairdrop',
-    script: 'server.js',
-    env: {
-      PORT: 3001,
-      NODE_ENV: 'production'
+  apps: [
+    {
+      name: 'fairdrop',
+      script: 'server.js',
+      env: {
+        PORT: 3001,
+        NODE_ENV: 'production'
+      }
     }
-  }]
+  ]
 }
 ```
 
