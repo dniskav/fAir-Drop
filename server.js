@@ -13,11 +13,35 @@ const server = http.createServer(app)
 const wss = new WebSocketServer({ noServer: true })
 
 server.on('upgrade', (request, socket, head) => {
+  // Logging to diagnose WS upgrade / proxy issues (temporary)
+  const now = new Date().toISOString()
+  const ip =
+    request.headers['x-forwarded-for']?.split(',')[0].trim() ?? request.socket.remoteAddress ?? '?'
+  const ua = request.headers['user-agent'] ?? '?'
+  console.log(
+    `[WS UPGRADE] ${now} url=${request.url} ip=${ip} ua=${ua} headLen=${head?.length ?? 0}`,
+  )
+
+  // Attach an error handler to the raw socket to log unexpected errors
+  socket.once('error', (err) => {
+    console.warn('[WS SOCKET ERROR] raw socket error during upgrade:', err?.message ?? err)
+  })
+
   if (request.url === '/ws') {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request)
-    })
+    try {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request)
+      })
+    } catch (err) {
+      console.error('[WS UPGRADE] handleUpgrade failed:', err)
+      try {
+        socket.destroy()
+      } catch (e) {
+        // ignore
+      }
+    }
   } else {
+    console.log('[WS UPGRADE] rejected upgrade (not /ws) url=', request.url)
     socket.destroy()
   }
 })
@@ -27,7 +51,7 @@ const qrLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 })
 
 // Rate limit para salas via WebSocket: se aplica al upgrade HTTP
@@ -38,7 +62,7 @@ const statusLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 })
 
 // En producción sirve el build de Vite; en desarrollo Vite corre su propio servidor
@@ -65,8 +89,8 @@ app.get('/api/qr', qrLimiter, async (req, res) => {
       margin: 1,
       color: {
         dark: '#17202a',
-        light: '#ffffff'
-      }
+        light: '#ffffff',
+      },
     })
     res.type('image/svg+xml').send(svg)
   } catch {
@@ -138,7 +162,7 @@ function peerSummary(info) {
     ip: info.ip,
     browser,
     mobile,
-    connectedAt: info.connectedAt?.toISOString() ?? null
+    connectedAt: info.connectedAt?.toISOString() ?? null,
   }
 }
 
@@ -159,9 +183,9 @@ app.get('/api/status', (req, res) => {
     bans: [...bans.entries()].map(([ip, b]) => ({
       ip,
       type: b.until ? 'temporal' : 'permanente',
-      label: banLabel(b)
+      label: banLabel(b),
     })),
-    rooms_detail: []
+    rooms_detail: [],
   }
 
   for (const [code, room] of rooms.entries()) {
@@ -174,7 +198,7 @@ app.get('/api/status', (req, res) => {
       creator: { ip: creator.ip, ua: creator.userAgent, since: elapsed(creator.connectedAt) },
       joiner: joiner
         ? { ip: joiner.ip, ua: joiner.userAgent, since: elapsed(joiner.connectedAt) }
-        : null
+        : null,
     })
   }
 
@@ -242,7 +266,7 @@ wss.on('connection', (ws, req) => {
           console.log(`[ROOM] RATE LIMIT  create  from=${normIp}`)
           send(ws, {
             type: 'error',
-            message: 'Demasiadas salas creadas. Intenta de nuevo en unos minutos.'
+            message: 'Demasiadas salas creadas. Intenta de nuevo en unos minutos.',
           })
           break
         }
@@ -295,7 +319,7 @@ wss.on('connection', (ws, req) => {
       case 'relay-meta': {
         const info = getPeer(ws)
         console.log(
-          `[RELAY] meta  ${info?.code ?? '?'}  type=${msg.payload?.type ?? '?'}  from=${normIp}`
+          `[RELAY] meta  ${info?.code ?? '?'}  type=${msg.payload?.type ?? '?'}  from=${normIp}`,
         )
         if (info?.peer) send(info.peer, msg)
         break
@@ -334,7 +358,7 @@ wss.on('connection', (ws, req) => {
         send(info.peer, { type: 'banned', reason, until: until?.toISOString() ?? null })
         setTimeout(() => info.peer.close(), 400)
         console.log(
-          `[Ban] ${peerMeta.ip} baneado — ${until ? `hasta ${until.toISOString()}` : 'permanente'}`
+          `[Ban] ${peerMeta.ip} baneado — ${until ? `hasta ${until.toISOString()}` : 'permanente'}`,
         )
         break
       }
@@ -354,7 +378,7 @@ wss.on('connection', (ws, req) => {
     const info = getPeer(ws)
     clients.delete(ws)
     console.log(
-      `[WS] DISCONNECT  ${normIp}  code=${code}  room=${info?.code ?? '-'}  role=${info?.role ?? '-'}`
+      `[WS] DISCONNECT  ${normIp}  code=${code}  room=${info?.code ?? '-'}  role=${info?.role ?? '-'}`,
     )
     if (!info) return
     const { code: roomCode, room, role, peer } = info

@@ -5,7 +5,7 @@
   "description": "fAir Drop: P2P file sharing in the browser via WebRTC",
   "main": "server.js",
   "scripts": {
-    "dev": "node server.js & vite",
+    "dev": "PORT=3003 node server.js & SERVER_PORT=3003 VITE_PORT=3002 vite",
     "build": "rm -rf public/app && vite build",
     "start": "NODE_ENV=production node server.js",
     "deploy": "npm run build && NODE_ENV=production node server.js",
@@ -35,6 +35,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "prettier": "^3.8.2",
     "typescript": "^5.9.3",
-    "vite": "^8.0.8"
+    "vite": "^8.0.8",
+    "vite-tsconfig-paths": "^6.1.1"
   }
 }
