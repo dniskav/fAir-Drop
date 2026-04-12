@@ -119,8 +119,8 @@
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(90deg, rgb(255 255 255 / 42%) 1px, transparent 1px),
-      linear-gradient(rgb(255 255 255 / 32%) 1px, transparent 1px);
+      linear-gradient(90deg, var(--line) 1px, transparent 1px),
+      linear-gradient(var(--line) 1px, transparent 1px);
     background-size: 42px 42px;
     mask-image: linear-gradient(to bottom, rgb(0 0 0 / 55%), transparent 70%);
   }
@@ -369,7 +369,7 @@
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     color: var(--ink);
-    background: rgb(255 255 255 / 88%);
+    background: var(--panel-solid);
     outline: none;
     transition:
       border-color 160ms ease,
@@ -397,7 +397,7 @@
   .expiry-input:focus {
     border-color: color-mix(in srgb, var(--blue), white 10%);
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue), transparent 84%);
-    background: white;
+    background: var(--panel-solid);
   }
 
   .btn,
@@ -451,14 +451,14 @@
   .btn-icon {
     color: var(--ink);
     border-color: var(--line);
-    background: rgb(255 255 255 / 82%);
+    background: var(--panel-solid);
   }
 
   .btn-secondary:hover,
   .btn-ghost:hover,
   .btn-icon:hover {
     border-color: color-mix(in srgb, var(--blue), transparent 56%);
-    background: white;
+    background: var(--panel-tint);
   }
 
   .btn-ghost {
@@ -549,7 +549,7 @@
     gap: 10px;
     padding: 12px 14px;
     border-block-end: 1px solid var(--line);
-    background: color-mix(in srgb, white 70%, transparent);
+    background: var(--panel);
     backdrop-filter: var(--blur);
   }
 
@@ -571,7 +571,7 @@
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     color: var(--blue-strong);
-    background: white;
+    background: var(--panel-solid);
     font-size: 17px;
     font-weight: 760;
     letter-spacing: 0.26em;
@@ -585,7 +585,7 @@
     padding-inline: 10px;
     border: 1px solid currentColor;
     border-radius: var(--radius);
-    background: rgb(255 255 255 / 72%);
+    background: var(--panel-solid);
     font-size: 12px;
     font-weight: 700;
   }
@@ -602,7 +602,7 @@
     padding: 12px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: rgb(255 255 255 / 82%);
+    background: var(--panel-solid);
     box-shadow: var(--shadow-soft);
   }
 
@@ -613,7 +613,7 @@
     border-left-width: 6px;
     border-left-color: var(--amber);
     border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--amber), white 92%);
+    background: color-mix(in srgb, var(--amber), var(--panel-solid) 92%);
     color: var(--ink);
     font-weight: 700;
     font-size: 13px;
@@ -679,7 +679,7 @@
     padding: 12px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: white;
+    background: white; /* blanco fijo: el QR necesita fondo blanco para ser escaneable */
   }
 
   /* Default QR size (smaller than before) and responsive adjustment */
@@ -739,7 +739,7 @@
     margin: 14px;
     border: 1.5px dashed color-mix(in srgb, var(--graphite), transparent 48%);
     border-radius: var(--radius);
-    background: linear-gradient(180deg, rgb(255 255 255 / 78%), rgb(242 247 249 / 78%));
+    background: color-mix(in srgb, var(--panel-solid) 72%, transparent);
     transition:
       border-color 180ms ease,
       background 180ms ease,
@@ -782,7 +782,7 @@
     padding: 10px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: rgb(255 255 255 / 66%);
+    background: var(--panel-solid);
   }
 
   .expiry-bar legend {
@@ -847,7 +847,7 @@
   .file-item {
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: rgb(255 255 255 / 86%);
+    background: var(--panel-solid);
   }
 
   .client-item {
@@ -909,7 +909,7 @@
     min-block-size: 30px;
     border: 1px solid color-mix(in srgb, var(--red), transparent 62%);
     color: var(--red);
-    background: white;
+    background: var(--panel-solid);
     font-size: 11px;
   }
 
@@ -938,8 +938,8 @@
     border-radius: 8px;
     background: linear-gradient(
       160deg,
-      color-mix(in srgb, var(--blue), white 92%),
-      color-mix(in srgb, var(--teal), white 92%)
+      color-mix(in srgb, var(--blue), var(--panel-solid) 88%),
+      color-mix(in srgb, var(--teal), var(--panel-solid) 88%)
     );
     color: var(--blue-strong);
     font-size: 0; /* svg will provide visuals */
@@ -1034,7 +1034,7 @@
   .btn-delete {
     min-block-size: 30px;
     border: 1px solid var(--line);
-    background: white;
+    background: var(--panel-solid);
     padding: 5px 10px;
     font-size: 12px;
     text-decoration: none;
@@ -1047,6 +1047,46 @@
 
   .btn-delete {
     color: var(--ink-muted);
+  }
+
+  /* ── Theme toggle ──────────────────────────────────────────── */
+  .theme-toggle {
+    position: fixed;
+    inset-block-start: max(16px, env(safe-area-inset-top));
+    inset-inline-end: 16px;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    inline-size: 36px;
+    block-size: 36px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--panel-solid);
+    color: var(--ink-soft);
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+    transition:
+      background 0.18s,
+      color 0.18s,
+      border-color 0.18s,
+      transform 0.12s;
+  }
+
+  .theme-toggle:hover {
+    color: var(--ink);
+    background: var(--panel-tint);
+    transform: scale(1.08);
+  }
+
+  .theme-toggle:active {
+    transform: scale(0.94);
+  }
+
+  .theme-toggle--inline {
+    position: static;
+    box-shadow: none;
+    flex-shrink: 0;
   }
 }
 

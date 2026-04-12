@@ -4,12 +4,15 @@ import type { ExpiryConfig } from '../core/store'
 import { useFairDrop } from './adapters/react/useFairDrop'
 import Home from './components/Home'
 import Room from './components/Room'
+import ThemeToggle from './components/ThemeToggle'
+import { useTheme } from './hooks/useTheme'
 
 // Store a nivel de módulo: una sola instancia para toda la app
 const store = new FairDropStore()
 
 export default function App() {
   const { state } = useFairDrop(store)
+  const { theme, toggle } = useTheme()
 
   // Clases CSS de dispositivo, auto-join desde URL y limpieza al salir
   useEffect(() => {
@@ -42,6 +45,8 @@ export default function App() {
     return (
       <Room
         state={state}
+        theme={theme}
+        onToggleTheme={toggle}
         actions={{
           sendFiles: (files: File[], expiry: ExpiryConfig | null) => store.sendFiles(files, expiry),
           deleteFile: (id: string) => store.deleteFile(id),
@@ -55,12 +60,15 @@ export default function App() {
   }
 
   return (
-    <Home
+    <>
+      <ThemeToggle theme={theme} onToggle={toggle} />
+      <Home
       state={state}
       actions={{
         createRoom: () => store.createRoom(),
         joinRoom: (code: string) => store.joinRoom(code),
       }}
     />
+    </>
   )
 }

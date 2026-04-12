@@ -3,6 +3,7 @@ import type { AppState } from '../app/state'
 import type { ExpiryConfig } from '../shared/domain/types'
 import PeersPanel from './PeersPanel'
 import FileList from './FileList'
+import ThemeToggle from './ThemeToggle'
 
 type RoomActions = {
   sendFiles(files: File[], expiry: ExpiryConfig | null): Promise<void>
@@ -20,7 +21,17 @@ const statusLabels: Record<string, string> = {
   disconnected: 'Desconectado',
 }
 
-export default function Room({ state, actions }: { state: AppState; actions: RoomActions }) {
+export default function Room({
+  state,
+  actions,
+  theme,
+  onToggleTheme,
+}: {
+  state: AppState
+  actions: RoomActions
+  theme: 'light' | 'dark'
+  onToggleTheme: () => void
+}) {
   const [expiry, setExpiry] = useState({
     timeEnabled: false,
     time: 30,
@@ -116,6 +127,7 @@ export default function Room({ state, actions }: { state: AppState; actions: Roo
           <span className="status-dot" aria-hidden="true" />
           <span>{statusLabels[state.connectionStatus] ?? ''}</span>
         </div>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} inline />
         {state.roomError ? (
           <p className="error-msg" role="status" aria-live="polite">
             {state.roomError}
