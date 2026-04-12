@@ -1,8 +1,8 @@
 import type {
+  ConnectionStatus,
   IncomingFile,
   PeerInfo,
-  SignalMessage,
-  TransferMessage
+  TransferMessage,
 } from '../shared/domain/types.js'
 
 export interface ExpiryRuntime {
@@ -12,28 +12,45 @@ export interface ExpiryRuntime {
 }
 
 export interface AppState {
+  // ── Conexión interna ─────────────────────────────────────────
   ws: WebSocket | null
   pc: RTCPeerConnection | null
   dc: RTCDataChannel | null
-  isCreator: boolean
   remoteDescSet: boolean
   pendingCandidates: RTCIceCandidateInit[]
   useRelay: boolean
   relayRequested: boolean
   connectTimer: number | null
   disconnectTimer: number | null
+
+  // ── Sala ─────────────────────────────────────────────────────
+  /** Pantalla actualmente visible */
+  screen: 'home' | 'room'
+  roomCode: string | null
+  isCreator: boolean
+  /** URL de invitación a la sala (solo para anfitrión) */
+  shareUrl: string | null
+
+  // ── UI derivada (sin DOM) ────────────────────────────────────
+  connectionStatus: ConnectionStatus
+  homeError: string | null
+  roomError: string | null
+
+  // ── Peers ────────────────────────────────────────────────────
   selfInfo: PeerInfo | null
   peerInfo: PeerInfo | null
   clientsTimer: number | null
+
+  // ── Transferencia ────────────────────────────────────────────
   fileUrls: Map<string, string>
   fileMeta: Map<string, { name: string; size?: number }>
   fileExpiry: Map<string, ExpiryRuntime>
   incoming: Map<string, IncomingFile>
-  uiReact: boolean
 }
 
+// Puertos que el store implementa para señalización WS
 export interface AppPorts {
-  onSignal(msg: SignalMessage): void | Promise<void>
+  onSignal(msg: import('../shared/domain/types.js').SignalMessage): void | Promise<void>
   onRelayMeta(msg: TransferMessage): void
   onBinaryChunk(buffer: ArrayBuffer): void
   showHomeError(message: string): void
@@ -44,20 +61,29 @@ export function createAppState(): AppState {
     ws: null,
     pc: null,
     dc: null,
-    isCreator: false,
     remoteDescSet: false,
     pendingCandidates: [],
     useRelay: false,
     relayRequested: false,
     connectTimer: null,
     disconnectTimer: null,
+
+    screen: 'home',
+    roomCode: null,
+    isCreator: false,
+    shareUrl: null,
+
+    connectionStatus: 'waiting',
+    homeError: null,
+    roomError: null,
+
     selfInfo: null,
     peerInfo: null,
     clientsTimer: null,
+
     fileUrls: new Map(),
-    uiReact: false,
     fileMeta: new Map(),
     fileExpiry: new Map(),
-    incoming: new Map()
+    incoming: new Map(),
   }
 }

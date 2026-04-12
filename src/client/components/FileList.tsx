@@ -40,29 +40,26 @@ export default function FileList({
     downloadsLeft?: number
   }> = []
   const urls = new Set<string>()
-  state.fileUrls.forEach((url, id) => {
+  state.fileUrls.forEach((url: string, id: string) => {
     const meta = state.fileMeta.get(id)
-    completed.push({
-      id,
-      name: meta?.name ?? id,
-      url,
-      size: meta?.size,
-      expiry: state.fileExpiry.get(id)?.remaining,
-      downloadsLeft: state.fileExpiry.get(id)?.downloadsLeft
-    })
+    const expiry = state.fileExpiry.get(id)
+    const entry: (typeof completed)[number] = { id, name: meta?.name ?? id, url }
+    if (meta?.size !== undefined) entry.size = meta.size
+    if (expiry?.remaining !== undefined) entry.expiry = expiry.remaining
+    if (expiry?.downloadsLeft !== undefined) entry.downloadsLeft = expiry.downloadsLeft
+    completed.push(entry)
     urls.add(id)
   })
   // include sent items that have metadata but no URL (sender-side completed)
-  state.fileMeta.forEach((meta, id) => {
+  state.fileMeta.forEach((meta: { name: string; size?: number }, id: string) => {
     if (urls.has(id)) return
     if (state.incoming.has(id)) return
-    completed.push({
-      id,
-      name: meta.name,
-      size: meta.size,
-      expiry: state.fileExpiry.get(id)?.remaining,
-      downloadsLeft: state.fileExpiry.get(id)?.downloadsLeft
-    })
+    const expiry = state.fileExpiry.get(id)
+    const entry: (typeof completed)[number] = { id, name: meta.name }
+    if (meta.size !== undefined) entry.size = meta.size
+    if (expiry?.remaining !== undefined) entry.expiry = expiry.remaining
+    if (expiry?.downloadsLeft !== undefined) entry.downloadsLeft = expiry.downloadsLeft
+    completed.push(entry)
   })
 
   return (

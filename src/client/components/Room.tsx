@@ -1,25 +1,21 @@
 import React from 'react'
 import PeersPanel from './PeersPanel'
 import FileList from './FileList'
-import { sendFilesReact } from '../features/transfer/application/transfer'
 
 export default function Room({ state, actions, code, isCreator }: any) {
   const hasFiles = state.incoming.size > 0 || state.fileUrls.size > 0
   const dropClass = state.peerInfo ? 'drop-zone' : 'drop-zone disabled'
 
-  // local file input for React-managed uploads
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const onFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : []
     if (files.length === 0) return
-    // No expiry UI in the React drop yet; send with default expiry (null)
     try {
-      await sendFilesReact(state, files)
+      await actions.sendFiles(files, null)
     } catch (err) {
-      console.error('sendFilesReact error', err)
+      console.error('sendFiles error', err)
     }
-    // reset input so same file selection can be re-used
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 

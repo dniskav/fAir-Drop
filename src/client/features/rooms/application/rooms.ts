@@ -1,29 +1,28 @@
 import type { AppState } from '../../../app/state.js'
-import type { DomRefs } from '../../../shared/adapters/dom.js'
 
-export function showRoom(state: AppState, dom: DomRefs, code: string, isCreator: boolean): void {
-  dom.screenHome.classList.remove('active')
-  dom.screenRoom.classList.add('active')
-  dom.roomCodeDisplay.textContent = code
+export function showRoom(
+  state: AppState,
+  code: string,
+  isCreator: boolean,
+  notify: () => void
+): void {
+  const shareUrl = isCreator
+    ? `${location.origin}${location.pathname}?room=${code}`
+    : null
+
+  state.screen = 'room'
+  state.roomCode = code
+  state.isCreator = isCreator
+  state.shareUrl = shareUrl
   history.replaceState(null, '', `?room=${code}`)
-  // clear creating visual state on the logo
-  try {
-    dom.brandMark.classList.remove('creating')
-    dom.brandMark.setAttribute('aria-pressed', 'false')
-  } catch (e) {}
-  if (isCreator) {
-    const link = `${location.origin}${location.pathname}?room=${code}`
-    dom.shareUrl.textContent = link
-    dom.roomQr.src = `/api/qr?text=${encodeURIComponent(link)}`
-    dom.shareBanner.classList.remove('hidden')
-    dom.roomQrCard.classList.remove('hidden')
-  } else {
-    dom.shareBanner.classList.add('hidden')
-    dom.roomQrCard.classList.add('hidden')
-  }
+  notify()
 }
 
-export function resetToHome(state: AppState, dom: DomRefs, message?: string): void {
+export function resetToHome(
+  state: AppState,
+  message: string | undefined,
+  notify: () => void
+): void {
   state.pc?.close()
   state.ws?.close()
   state.pc = null
@@ -33,22 +32,21 @@ export function resetToHome(state: AppState, dom: DomRefs, message?: string): vo
   state.relayRequested = false
   state.selfInfo = null
   state.peerInfo = null
+  state.roomCode = null
+  state.shareUrl = null
+  state.screen = 'home'
+  state.connectionStatus = 'waiting'
   if (state.clientsTimer) window.clearInterval(state.clientsTimer)
   state.clientsTimer = null
-  dom.clientsList.innerHTML = '<li class="client-empty">Esperando...</li>'
-  dom.roomQr.removeAttribute('src')
   history.replaceState(null, '', '/')
-  dom.screenRoom.classList.remove('active')
-  dom.screenHome.classList.add('active')
-  // React UI is no longer mounted
-  state.uiReact = false
-  try {
-    dom.brandMark.classList.remove('creating')
-    dom.brandMark.setAttribute('aria-pressed', 'false')
-  } catch (e) {}
+
   if (message) {
-    dom.homeError.textContent = message
-    dom.homeError.classList.remove('hidden')
-    window.setTimeout(() => dom.homeError.classList.add('hidden'), 5000)
+    state.homeError = message
+    window.setTimeout(() => {
+      state.homeError = null
+      notify()
+    }, 5000)
   }
+
+  notify()
 }

@@ -51,10 +51,10 @@ export type SignalMessage =
   | { type: 'banned'; reason?: string }
   | { type: 'error'; message: string }
 
+// Archivo en vuelo. Sin referencias al DOM — el progreso se sigue con `received`.
 export interface IncomingFile {
   meta: FileStartMessage
   chunks: ArrayBuffer[]
   received: number
-  itemEl?: HTMLLIElement
   direction?: 'sending' | 'receiving'
 }

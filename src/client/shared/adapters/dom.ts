@@ -2,7 +2,6 @@ export interface DomRefs {
   screenHome: HTMLElement
   screenRoom: HTMLElement
   brandMark: HTMLElement
-  btnCreate: HTMLButtonElement
   btnJoin: HTMLButtonElement
   inputCode: HTMLInputElement
   homeError: HTMLElement
@@ -46,7 +45,6 @@ export function getDomRefs(): DomRefs {
     screenHome: byId('screen-home'),
     screenRoom: byId('screen-room'),
     brandMark: byId('brand-mark'),
-    btnCreate: byId('btn-create'),
     btnJoin: byId('btn-join'),
     inputCode: byId<HTMLInputElement>('input-code'),
     homeError: byId('home-error'),

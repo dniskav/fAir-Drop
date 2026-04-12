@@ -3,7 +3,7 @@ import type { AppPorts, AppState } from '../../../app/state.js';
 export function connectWs(state: AppState, ports: AppPorts): WebSocket {
   state.ws?.close();
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const ws = new WebSocket(`${proto}://${location.host}`);
+  const ws = new WebSocket(`${proto}://${location.host}/ws`);
   state.ws = ws;
   ws.binaryType = 'arraybuffer';
 

@@ -4,10 +4,11 @@
   "description": "fAir Drop: P2P file sharing in the browser via WebRTC",
   "main": "server.js",
   "scripts": {
-    "build": "esbuild src/client/main.ts --bundle --format=esm --target=es2022 --outdir=public/app --sourcemap && sed -i \"s/main\\.js?v=[0-9]*/main.js?v=$(date +%s)/g\" public/index.html",
-    "start": "npm run build && node server.js",
-    "dev": "esbuild src/client/main.ts --bundle --format=esm --target=es2022 --outdir=public/app --sourcemap --watch",
-    "serve": "node server.js"
+    "dev": "node server.js & vite",
+    "build": "rm -rf public/app && vite build",
+    "start": "NODE_ENV=production node server.js",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "eslint": "^10.2.0",
@@ -22,7 +23,8 @@
   "devDependencies": {
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
-    "esbuild": "^0.18.11",
-    "typescript": "^5.9.3"
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.8"
   }
 }

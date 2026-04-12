@@ -7,29 +7,37 @@ fAir Drop es una app local-first para compartir archivos entre dos dispositivos 
 ## Como trabajar en este repo
 
 - Mantener la app simple: Node.js, Express, `ws`, TypeScript de navegador, HTML/CSS vanilla.
-- No introducir frameworks frontend salvo que el usuario lo pida explicitamente.
-- Preservar los IDs de `public/index.html`; `src/client/main.ts` y sus slices dependen de ellos via `getDomRefs()` — si falta un ID la app no arranca.
-- La fuente del cliente vive en `src/client`; no editar a mano `public/app/`, porque es salida de esbuild y se regenera con `npm run build`.
+- La migración a React está en progreso; los componentes viven en `src/client/components/` pero la UI activa sigue siendo la vanilla de `main.ts`.
+- El entry point HTML es `index.html` en la raiz del proyecto (no en `public/`). Preservar todos sus IDs; `src/client/main.ts` y sus slices dependen de ellos via `getDomRefs()` — si falta un ID la app no arranca. Ver lista completa en la seccion de Arquitectura.
+- La fuente del cliente vive en `src/client`. No editar `dist/` ni `public/app/` a mano; son salida de build.
+- `public/` es el `publicDir` de Vite: solo contiene `style.css`. No poner ahi archivos compilados.
 - Mantener `fairdrop` como identificador tecnico interno cuando aplique, aunque la marca visible sea `fAir Drop`.
 - Evitar persistencia innecesaria: salas, clientes y bans estan en memoria por diseno.
-- El build script actualiza automaticamente el query string de version en `public/index.html` para evitar cache en los navegadores de desarrollo.
+- Vite maneja cache busting automaticamente en build (hashes en nombres de assets).
 
 ## Comandos
 
 ```bash
 npm install
-npm run build    # compila TypeScript y actualiza ?v= en index.html
-npm start        # build + node server.js
-npm run dev      # watch de TypeScript
-npm run serve    # solo servidor sin compilar
+npm run dev        # Vite dev server :3000 + Express :3001 en paralelo
+npm run build      # vite build → dist/
+npm start          # NODE_ENV=production node server.js (sirve dist/)
+npm run typecheck  # tsc --noEmit (solo chequeo de tipos)
 node --check server.js
 ```
 
 ## Arquitectura
 
-`server.js` sirve archivos estaticos, mantiene salas en memoria y actua como signaling WebSocket para WebRTC. Tambien reenvia metadatos y chunks binarios cuando la app cae a modo relay.
+`server.js` corre en el puerto 3001 (configurable con `PORT`). En produccion sirve los archivos estaticos desde `dist/`. Mantiene salas en memoria y actua como signaling WebSocket para WebRTC en el path `/ws`. Tambien reenvia metadatos y chunks binarios cuando la app cae a modo relay.
+
+`index.html` (raiz del proyecto) es el entry point de Vite. El script apunta a `/src/client/main.ts` en desarrollo; Vite lo reemplaza por el bundle hasheado en `dist/` al compilar.
 
 `src/client/main.ts` compone la experiencia del navegador: creacion/union a sala, handshake WebRTC, DataChannel, fallback relay, drag and drop, progreso de archivos, expiraciones, eliminacion remota y controles del peer.
+
+**IDs criticos del HTML** (todos deben existir o la app lanza error al arrancar):
+`brand-mark`, `btn-join`, `input-code`, `home-error`, `room-error`, `room-code-display`, `btn-copy-code`, `connection-status`, `status-text`, `drop-zone`, `drop-waiting`, `drop-ready`, `file-input`, `file-list-section`, `file-list`, `share-banner`, `share-url`, `btn-copy-link`, `btn-native-share`, `btn-scan-qr`, `qr-scanner`, `btn-close-scanner`, `qr-video`, `scanner-status`, `room-qr`, `room-qr-card`, `clients-list`, `exp-time-on`, `exp-time-val`, `exp-dl-on`, `exp-dl-val`, `screen-home`, `screen-room`.
+
+**NO existe** `btn-create` — crear sala lo hace `brand-mark` (el radar). No añadirlo.
 
 La estructura TypeScript sigue una version ligera de arquitectura hexagonal con vertical slicing:
 
