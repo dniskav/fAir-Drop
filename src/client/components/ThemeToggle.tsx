@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from '../i18n'
 
 interface Props {
   theme: 'light' | 'dark'
@@ -7,12 +8,13 @@ interface Props {
 }
 
 export default function ThemeToggle({ theme, onToggle, inline }: Props) {
+  const { t } = useTranslation()
   return (
     <button
       className={inline ? 'theme-toggle theme-toggle--inline' : 'theme-toggle'}
       onClick={onToggle}
-      aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-      title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+      aria-label={theme === 'dark' ? t.theme.toLight : t.theme.toDark}
+      title={theme === 'dark' ? t.theme.light : t.theme.dark}
     >
       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
     </button>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import type { AppState } from '../app/state'
 import { formatBytes } from '../shared/application/format'
+import { useTranslation } from '../i18n'
 
 export default function FileList({
   state,
@@ -9,6 +10,7 @@ export default function FileList({
   state: AppState
   actions: { deleteFile(fileId: string): void; downloadFile(fileId: string): void }
 }) {
+  const { t } = useTranslation()
   const [, setTick] = useState(0)
 
   useEffect(() => {
@@ -50,7 +52,6 @@ export default function FileList({
     completed.push(entry)
     urls.add(id)
   })
-  // include sent items that have metadata but no URL (sender-side completed)
   state.fileMeta.forEach((meta: { name: string; size?: number }, id: string) => {
     if (urls.has(id)) return
     if (state.incoming.has(id)) return
@@ -80,7 +81,7 @@ export default function FileList({
                 'badge ' + (it.direction === 'sending' ? 'badge-sending' : 'badge-receiving')
               }
             >
-              {it.direction === 'sending' ? 'enviando' : 'recibiendo'}
+              {it.direction === 'sending' ? t.files.sending : t.files.receiving}
             </span>
             {typeof it.expiry === 'number' ? (
               <span className="expiry-tag time">{it.expiry}s</span>
@@ -93,7 +94,7 @@ export default function FileList({
               onClick={() => actions.deleteFile(it.id)}
               data-delete-file={it.id}
             >
-              Eliminar
+              {t.files.delete}
             </button>
           </div>
         </li>
@@ -114,10 +115,10 @@ export default function FileList({
                 href={c.url}
                 download={c.name}
               >
-                Descargar
+                {t.files.download}
               </a>
             ) : (
-              <span className="badge badge-done">enviado</span>
+              <span className="badge badge-done">{t.files.sent}</span>
             )}
             {typeof c.expiry === 'number' ? (
               <span className="expiry-tag time">{c.expiry}s</span>
@@ -130,14 +131,14 @@ export default function FileList({
               onClick={() => actions.deleteFile(c.id)}
               data-delete-file={c.id}
             >
-              Eliminar
+              {t.files.delete}
             </button>
           </div>
         </li>
       ))}
 
       {incomingItems.length === 0 && completed.length === 0 ? (
-        <li className="file-item client-empty">No hay archivos</li>
+        <li className="file-item client-empty">{t.files.noFiles}</li>
       ) : null}
     </ul>
   )

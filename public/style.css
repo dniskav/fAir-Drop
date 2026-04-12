@@ -1088,6 +1088,47 @@
     box-shadow: none;
     flex-shrink: 0;
   }
+
+  /* ── Home floating controls (lang + theme) ─────────────────── */
+  .home-controls {
+    position: fixed;
+    inset-block-start: max(14px, env(safe-area-inset-top));
+    inset-inline-end: 14px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Language selector ─────────────────────────────────────── */
+  .lang-select {
+    padding: 0 8px;
+    block-size: 36px;
+    min-inline-size: 80px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel-solid);
+    color: var(--ink-soft);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+    transition:
+      background 0.18s,
+      color 0.18s,
+      border-color 0.18s;
+  }
+
+  .lang-select:hover {
+    color: var(--ink);
+    background: var(--panel-tint);
+  }
+
+  .lang-select--inline {
+    box-shadow: none;
+    min-inline-size: 72px;
+  }
 }
 
 @layer states {

@@ -1,20 +1,20 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { FairDropStore } from '../core/store'
 import type { ExpiryConfig } from '../core/store'
 import { useFairDrop } from './adapters/react/useFairDrop'
 import Home from './components/Home'
 import Room from './components/Room'
 import ThemeToggle from './components/ThemeToggle'
+import LanguageSelector from './components/LanguageSelector'
 import { useTheme } from './hooks/useTheme'
+import { LocaleProvider } from './i18n'
 
-// Store a nivel de módulo: una sola instancia para toda la app
 const store = new FairDropStore()
 
-export default function App() {
+function AppInner() {
   const { state } = useFairDrop(store)
   const { theme, toggle } = useTheme()
 
-  // Clases CSS de dispositivo, auto-join desde URL y limpieza al salir
   useEffect(() => {
     const isMobile =
       matchMedia('(pointer: coarse)').matches ||
@@ -27,9 +27,6 @@ export default function App() {
       store.joinRoom(room.toUpperCase())
     }
 
-    // Cerrar el WebSocket antes de recargar/salir para que el servidor limpie
-    // la sala inmediatamente. Sin esto, iOS/Android mantiene el socket vivo y
-    // el servidor cree que el creador sigue presente (sala zombie).
     const onUnload = () => store.disconnect()
     window.addEventListener('beforeunload', onUnload)
     ;(window as any).__fairdrop = store
@@ -61,14 +58,25 @@ export default function App() {
 
   return (
     <>
-      <ThemeToggle theme={theme} onToggle={toggle} />
+      <div className="home-controls">
+        <LanguageSelector />
+        <ThemeToggle theme={theme} onToggle={toggle} inline />
+      </div>
       <Home
-      state={state}
-      actions={{
-        createRoom: () => store.createRoom(),
-        joinRoom: (code: string) => store.joinRoom(code),
-      }}
-    />
+        state={state}
+        actions={{
+          createRoom: () => store.createRoom(),
+          joinRoom: (code: string) => store.joinRoom(code),
+        }}
+      />
     </>
+  )
+}
+
+export default function App() {
+  return (
+    <LocaleProvider>
+      <AppInner />
+    </LocaleProvider>
   )
 }

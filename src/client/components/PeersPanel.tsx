@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import type { AppState } from '../app/state'
 import type { PeerInfo, Role } from '../shared/domain/types'
 import { elapsed } from '../shared/application/format'
+import { useTranslation } from '../i18n'
 
 type Actions = { kickPeer(): void; banPeer(duration: number | null): void }
 
@@ -18,6 +19,7 @@ function ClientCard({
   canControl: boolean
   actions: Actions
 }) {
+  const { t } = useTranslation()
   const [tick, setTick] = useState(0)
   const [banDur, setBanDur] = useState<number>(60)
 
@@ -29,22 +31,22 @@ function ClientCard({
   return (
     <li className={'client-item' + (isSelf ? ' is-self' : '')}>
       <div className="client-role">
-        {role === 'creator' ? 'Creador' : 'Invitado'}
-        {isSelf ? <span className="you-badge">tu</span> : null}
+        {role === 'creator' ? t.peers.creator : t.peers.guest}
+        {isSelf ? <span className="you-badge">{t.peers.you}</span> : null}
       </div>
       <div className="client-ip">{info.ip}</div>
       <div className="client-browser">
         <span className="client-icon">{info.mobile ? 'mobile' : 'desktop'}</span> {info.browser}
       </div>
       <div className="client-since">
-        {'conectado hace '}
+        {t.peers.connectedSince + ' '}
         <span data-since={isSelf ? 'self' : 'peer'}>{elapsed(info.connectedAt)}</span>
       </div>
 
       {canControl ? (
         <div className="peer-actions">
           <button className="btn-kick" onClick={actions.kickPeer} data-kick-peer>
-            Expulsar
+            {t.peers.kick}
           </button>
 
           <div className="ban-row">
@@ -53,7 +55,7 @@ function ClientCard({
               onClick={() => actions.banPeer(null)}
               data-ban-peer="permanent"
             >
-              Ban permanente
+              {t.peers.banPermanent}
             </button>
           </div>
 
@@ -63,7 +65,7 @@ function ClientCard({
               onClick={() => actions.banPeer(banDur)}
               data-ban-peer="temporary"
             >
-              Ban temporal
+              {t.peers.banTemporary}
             </button>
             <input
               type="number"
@@ -73,7 +75,7 @@ function ClientCard({
               value={banDur}
               onChange={(e) => setBanDur(Number(e.target.value) || 60)}
             />
-            <span className="ban-unit">seg</span>
+            <span className="ban-unit">{t.peers.sec}</span>
           </div>
         </div>
       ) : null}
@@ -82,10 +84,12 @@ function ClientCard({
 }
 
 export default function PeersPanel({ state, actions }: { state: AppState; actions: Actions }) {
+  const { t } = useTranslation()
+
   return (
     <ul className="clients-list">
       {!state.selfInfo ? (
-        <li className="client-empty">Esperando...</li>
+        <li className="client-empty">{t.peers.waiting}</li>
       ) : (
         <>
           <ClientCard
@@ -105,9 +109,9 @@ export default function PeersPanel({ state, actions }: { state: AppState; action
             />
           ) : (
             <li className="client-item is-empty">
-              <div className="client-role">{state.isCreator ? 'Invitado' : 'Creador'}</div>
+              <div className="client-role">{state.isCreator ? t.peers.guest : t.peers.creator}</div>
               <div className="client-ip">-</div>
-              <div className="client-browser">Sin conectar</div>
+              <div className="client-browser">{t.peers.notConnected}</div>
             </li>
           )}
         </>
