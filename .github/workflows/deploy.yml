@@ -1,0 +1,30 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/var/www/fAir-Drop
+            git fetch origin main
+            git checkout -- bun.lock 2>/dev/null || rm -f bun.lock
+            git pull origin main
+            export BUN_INSTALL="$HOME/.bun"
+            export PATH="$BUN_INSTALL/bin:$PATH"
+            if ! command -v bun &> /dev/null; then
+              curl -fsSL https://bun.sh/install | bash
+            fi
+            bun install --frozen-lockfile
+            bun run build
+            pm2 reload fairdrop
