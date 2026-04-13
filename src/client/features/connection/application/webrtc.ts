@@ -8,6 +8,21 @@ const DISCONNECT_GRACE_MS = 3500
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  {
+    urls: 'turn:fairdrop.metered.live:80',
+    username: '433c43500cb12d33538bcb17',
+    credential: 'XZioDDDZqa/4mkDj',
+  },
+  {
+    urls: 'turn:fairdrop.metered.live:443',
+    username: '433c43500cb12d33538bcb17',
+    credential: 'XZioDDDZqa/4mkDj',
+  },
+  {
+    urls: 'turns:fairdrop.metered.live:443',
+    username: '433c43500cb12d33538bcb17',
+    credential: 'XZioDDDZqa/4mkDj',
+  },
 ]
 
 /**
