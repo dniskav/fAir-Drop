@@ -2,24 +2,28 @@ import type { AppState } from '@client/app/state'
 import type { ConnectionStatus, TransferMessage } from '@shared/domain/types'
 import { wsSend } from '@features/connection/application/signaling'
 
-const CONNECT_TIMEOUT_MS = 9000
+const CONNECT_TIMEOUT_MS = 20000
 const DISCONNECT_GRACE_MS = 3500
 
 const ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.relay.metered.ca:80' },
   {
-    urls: 'turn:fairdrop.metered.live:80',
+    urls: 'turn:global.relay.metered.ca:80',
     username: '433c43500cb12d33538bcb17',
     credential: 'XZioDDDZqa/4mkDj',
   },
   {
-    urls: 'turn:fairdrop.metered.live:443',
+    urls: 'turn:global.relay.metered.ca:80?transport=tcp',
     username: '433c43500cb12d33538bcb17',
     credential: 'XZioDDDZqa/4mkDj',
   },
   {
-    urls: 'turns:fairdrop.metered.live:443',
+    urls: 'turn:global.relay.metered.ca:443',
+    username: '433c43500cb12d33538bcb17',
+    credential: 'XZioDDDZqa/4mkDj',
+  },
+  {
+    urls: 'turns:global.relay.metered.ca:443?transport=tcp',
     username: '433c43500cb12d33538bcb17',
     credential: 'XZioDDDZqa/4mkDj',
   },
