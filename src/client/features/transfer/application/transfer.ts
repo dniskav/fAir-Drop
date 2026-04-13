@@ -2,7 +2,7 @@ import type { AppState, ExpiryRuntime } from '@client/app/state'
 import type { ExpiryConfig, FileStartMessage, TransferMessage } from '@shared/domain/types'
 import { relaySend, sendMeta } from '@features/connection/application/webrtc'
 
-const CHUNK_SIZE = 16 * 1024
+const CHUNK_SIZE = 128 * 1024 // 128 KB — balance entre throughput y compatibilidad
 
 // crypto.randomUUID() requiere contexto seguro (HTTPS/localhost); fallback para HTTP en LAN
 function generateId(): string {
